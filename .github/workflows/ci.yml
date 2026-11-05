@@ -1,0 +1,25 @@
+name: CI
+
+on: [push, pull_request]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.11", "3.13"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      # MpApi is not on PyPI; the dependency in pyproject.toml pulls it from git
+      - run: pip install -e ".[test]"
+      # no database and no ~/.ria: the suite runs entirely on the fixture
+      - run: pytest -q
+      - name: build a report from the fixture
+        run: |
+          reportm fixture -j testdaten
+          reportm check -j testdaten
+          reportm build -j testdaten
+          test -s testdaten/testdaten.pdf
